@@ -12,7 +12,9 @@
       "position": [240, 300]
     },
     {
-      "parameters": { "url": "https://www.aljazeera.com/xml/rss/all.xml" },
+      "parameters": {
+        "url": "https://www.aljazeera.com/xml/rss/all.xml"
+      },
       "id": "2",
       "name": "RSS Al Jazeera",
       "type": "n8n-nodes-base.rssFeedRead",
@@ -20,7 +22,9 @@
       "position": [460, 100]
     },
     {
-      "parameters": { "url": "https://feeds.bbci.co.uk/news/world/rss.xml" },
+      "parameters": {
+        "url": "https://feeds.bbci.co.uk/news/world/rss.xml"
+      },
       "id": "3",
       "name": "RSS BBC World",
       "type": "n8n-nodes-base.rssFeedRead",
@@ -28,7 +32,9 @@
       "position": [460, 300]
     },
     {
-      "parameters": { "url": "https://www.theguardian.com/world/rss" },
+      "parameters": {
+        "url": "https://www.theguardian.com/world/rss"
+      },
       "id": "4",
       "name": "RSS Guardian",
       "type": "n8n-nodes-base.rssFeedRead",
@@ -36,7 +42,9 @@
       "position": [460, 500]
     },
     {
-      "parameters": { "mode": "append" },
+      "parameters": {
+        "mode": "append"
+      },
       "id": "5",
       "name": "Merge All News",
       "type": "n8n-nodes-base.merge",
@@ -47,4 +55,367 @@
       "parameters": {
         "conditions": {
           "string": [
-            { "key": "={{ $json.title + ' ' + $json.description }}", "operation": "contains", "value": "war OR Ukraine OR Gaza OR Israel
+            {
+              "key": "={{ $json.title + ' ' + $json.description }}",
+              "operation": "contains",
+              "value": "war OR Ukraine OR Gaza OR Israel OR Sudan OR conflict OR strike OR killed"
+            }
+          ]
+        }
+      },
+      "id": "6",
+      "name": "Filter War News",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 1
+      },
+      "id": "7",
+      "name": "Split One by One",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://r.jina.ai/' + $json.link }}",
+        "responseFormat": "text"
+      },
+      "id": "8",
+      "name": "Scrape Full Article (Jina)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "fullText",
+              "value": "={{ $json.body }}"
+            }
+          ]
+        }
+      },
+      "id": "9",
+      "name": "Clean Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "key": "={{ $json.fullText }}",
+              "operation": "contains",
+              "value": "disputed OR conflicting OR clash OR contradiction"
+            }
+          ]
+        }
+      },
+      "id": "10",
+      "name": "IF - Conflict Detected?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1780, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "key": "={{ $json.fullText }}",
+              "operation": "contains",
+              "value": "strike OR killed OR offensive OR war crime OR escalation"
+            }
+          ]
+        }
+      },
+      "id": "11",
+      "name": "IF - High Urgency?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1780, 400]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "chatId": "YOUR_CHAT_ID_HERE",
+        "text": "⚠️ CONFLICTING REPORTS!\n{{ $json.title }}\nSource: {{ $json.source }}\nRead: {{ $json.link }}"
+      },
+      "id": "12",
+      "name": "Telegram - Conflict Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [2000, 100],
+      "credentials": {
+        "telegramApi": {
+          "id": null,
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "chatId": "YOUR_CHAT_ID_HERE",
+        "text": "🚨 URGENT ESCALATION!\n{{ $json.title }}\n{{ $json.fullText.substring(0,300) }}..."
+      },
+      "id": "13",
+      "name": "Telegram - Urgent Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [2000, 400],
+      "credentials": {
+        "telegramApi": {
+          "id": null,
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "chatId": "YOUR_CHAT_ID_HERE",
+        "text": "📰 {{ $json.title }}\n{{ $json.fullText.substring(0,200) }}...\n{{ $json.link }}"
+      },
+      "id": "14",
+      "name": "Telegram - Normal Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [2000, 600],
+      "credentials": {
+        "telegramApi": {
+          "id": null,
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://YOUR-PROJECT.supabase.co/rest/v1/war_news",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "YOUR_ANON_KEY"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_ANON_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"title\": $json.title, \"url\": $json.link, \"source\": $json.source || \"Unknown\", \"full_text\": $json.fullText, \"conflict_flag\": $json.conflict || false, \"created_at\": $now } }}"
+      },
+      "id": "15",
+      "name": "Save to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2220, 300]
+    }
+  ],
+  "connections": {
+    "Daily at 8AM": {
+      "main": [
+        [
+          {
+            "node": "RSS Al Jazeera",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RSS BBC World",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RSS Guardian",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Al Jazeera": {
+      "main": [
+        [
+          {
+            "node": "Merge All News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS BBC World": {
+      "main": [
+        [
+          {
+            "node": "Merge All News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Guardian": {
+      "main": [
+        [
+          {
+            "node": "Merge All News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge All News": {
+      "main": [
+        [
+          {
+            "node": "Filter War News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter War News": {
+      "main": [
+        [
+          {
+            "node": "Split One by One",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split One by One": {
+      "main": [
+        [
+          {
+            "node": "Scrape Full Article (Jina)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape Full Article (Jina)": {
+      "main": [
+        [
+          {
+            "node": "Clean Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Data": {
+      "main": [
+        [
+          {
+            "node": "IF - Conflict Detected?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Conflict Detected?": {
+      "main": [
+        [
+          {
+            "node": "Telegram - Conflict Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF - High Urgency?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - High Urgency?": {
+      "main": [
+        [
+          {
+            "node": "Telegram - Urgent Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram - Normal Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram - Conflict Alert": {
+      "main": [
+        [
+          {
+            "node": "Save to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram - Urgent Alert": {
+      "main": [
+        [
+          {
+            "node": "Save to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram - Normal Alert": {
+      "main": [
+        [
+          {
+            "node": "Save to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "timezone": "UTC"
+  },
+  "versionId": 1,
+  "tags": []
+}
