@@ -1,3 +1,5 @@
+Hi, I'm Jessel Grace from the Philippines. I create n8n automations to monitor news, manage tasks, and simplify life. Here's my growing collection!
+
 # My n8n Workflows Collection
 
 A personal backup and showcase of my n8n automation workflows (JSON exports). Built for practice, news monitoring, GitHub management, and more.
