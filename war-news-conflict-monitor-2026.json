@@ -1,0 +1,50 @@
+{
+  "name": "2026 War & Conflict News Monitor with Conflict Detection",
+  "nodes": [
+    {
+      "parameters": {
+        "cronExpression": "0 8 * * *"
+      },
+      "id": "1",
+      "name": "Daily at 8AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": { "url": "https://www.aljazeera.com/xml/rss/all.xml" },
+      "id": "2",
+      "name": "RSS Al Jazeera",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [460, 100]
+    },
+    {
+      "parameters": { "url": "https://feeds.bbci.co.uk/news/world/rss.xml" },
+      "id": "3",
+      "name": "RSS BBC World",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": { "url": "https://www.theguardian.com/world/rss" },
+      "id": "4",
+      "name": "RSS Guardian",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [460, 500]
+    },
+    {
+      "parameters": { "mode": "append" },
+      "id": "5",
+      "name": "Merge All News",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            { "key": "={{ $json.title + ' ' + $json.description }}", "operation": "contains", "value": "war OR Ukraine OR Gaza OR Israel
